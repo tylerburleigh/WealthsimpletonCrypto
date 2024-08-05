@@ -52,7 +52,7 @@ if __name__ == "__main__":
     if args.after:
         after_str = args.after
     if args.account_id:
-        account_id = args.account_id # account id looks like "non-registered-crypto-lmzx7t93"
+        account_id = args.account_id
     else:
         print("Please provide an account ID")
         exit(1)

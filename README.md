@@ -21,7 +21,7 @@ A Python script that scrapes your Wealthsimple crypto activity history and saves
       - Then it will expand each transaction, read the details, save to memory
       - Once all transactions have been read, it will save the details to disk
 7. Once the script finishes, it will write a file to disk called `ws_dump.json`
-8. Run `python ws_to_koinly.py` to convert that JSON file  into a series of CSVs that can be imported into Koinly (e.g., `koinly_btc.pcsv`, `koinly_eth.csv`)
+8. Run `python ws_to_koinly.py` to convert that JSON file  into a series of CSVs that can be imported into Koinly (e.g., `koinly_btc.csv`, `koinly_eth.csv`)
 
 The Koinly CSVs are saved in a format like the "trade template" found here:
 https://support.koinly.io/en/articles/9489976-how-to-create-a-custom-csv-file-with-your-data

@@ -8,7 +8,11 @@ import random
 import time
 import getpass
 
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
+
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium_stealth import stealth
 
 from selenium.webdriver.common.by import By
@@ -41,11 +45,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', help='Where to save the output (can be an existing file for incremental scraping)')
     parser.add_argument('--after', help='A \'Y-m-d H:M\' string to filter out orders older than a certain date/time')
+    parser.add_argument('--account_id', help='The account ID to scrape')
     args = parser.parse_args()
     if args.file:
         output_path = args.file
     if args.after:
         after_str = args.after
+    if args.account_id:
+        account_id = args.account_id # account id looks like "non-registered-crypto-lmzx7t93"
+    else:
+        print("Please provide an account ID")
+        exit(1)
 
     # Setup Webdriver and load env. vars.
     load_dotenv()
@@ -53,6 +63,8 @@ if __name__ == "__main__":
     window_width = screen_width // 2
     window_height = screen_height
     options = webdriver.ChromeOptions()
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
     options.add_argument(f"window-size={window_width},{window_height}")
     options.add_argument(f"window-position={screen_width},0")
     dataDir = f"/home/{getpass.getuser()}/.config/chromium"
@@ -63,7 +75,9 @@ if __name__ == "__main__":
         options.add_argument(f"--profile-directory=Default")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
-    driver = webdriver.Chrome(options=options)
+
+    service = ChromeService(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
     stealth(driver,
         languages=["en-US", "en"],
         vendor="Google Inc.",
@@ -72,26 +86,41 @@ if __name__ == "__main__":
         renderer="Intel Iris OpenGL Engine",
         fix_hairline=True,
         )
-
+    
     driver.get("https://my.wealthsimple.com")
     email = os.getenv("WS_EMAIL")
     password = os.getenv("WS_PASSWORD")
     if (email): # If not defined, you can login manually
-        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div > div > div > input")))
+        WebDriverWait(driver, 120).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div > div > div > input")))
         fields = driver.find_elements(By.CSS_SELECTOR, "div > div > div > input")
         fields[0].send_keys(email)
         fields[1].click()
     if (password): # If not defined, you can login manually
-        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div > div > div > input")))
+        WebDriverWait(driver, 120).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div > div > div > input")))
         fields = driver.find_elements(By.CSS_SELECTOR, "div > div > div > input")
         fields[1].send_keys(password)
         fields[0].click()
     if (email and password): # If not defined, you can login manually
         driver.find_elements(By.CSS_SELECTOR, "div > div > div > button").pop().click()
     WebDriverWait(driver, 3600).until(EC.url_changes(driver.current_url)) # Long timeout needed for manual login or 2FA
-    driver.get("https://my.wealthsimple.com/app/activity")
+    driver.get(f"https://my.wealthsimple.com/app/activity?account_ids={account_id}&types=buys,sells")
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button/div/div/div[2]/p[1]")))
-    time.sleep(2) # If you need to scroll down to 'Load More', increase this timeout to have enough time to scroll manually (scrolling is not automated)
+    time.sleep(10)
+    
+    while True:
+        try:
+            load_more_button = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Load more')]"))
+            )
+            driver.execute_script("arguments[0].scrollIntoView();", load_more_button)
+            load_more_button.click()
+            time.sleep(3)
+        except:
+            print("No more 'Load more' buttons found. Proceeding with data extraction.")
+            driver.execute_script("window.scrollTo(0, 0);")
+            time.sleep(2)  # Wait for the scroll to complete
+            break
+    
     tickers = driver.find_elements(By.XPATH, "//button/div/div/div[2]/p[1]")
     transactions = []
     for x in range(len(tickers)):
@@ -109,6 +138,10 @@ if __name__ == "__main__":
         except:
             date = convert_datetime(details_div.find_element(By.XPATH, "//p[text() = 'Filled']/../div/div/p").text).isoformat()
 
+        
+        filled_quantity = details_div.find_element(By.XPATH, "//p[text() = 'Filled quantity']/../div/div/p").text
+        fees = details_div.find_element(By.XPATH, "//p[text() = 'Fees']/../div/div/p").text
+        
         if after_str is not None:
             after_date = datetime.strptime(after_str, '%Y-%m-%d %H:%M')
             curr_date = datetime.fromisoformat(date)
@@ -119,6 +152,8 @@ if __name__ == "__main__":
             "description": ticker.text,
             "type": transactionType.text,
             "amount": amount.text,
+            "filled_quantity": filled_quantity,
+            "fees": fees,
             "date": date
         })
         amount.click()

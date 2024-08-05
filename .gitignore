@@ -1,2 +1,4 @@
 .env
 sample.json
+ws_dump.json
+koinly_*.csv

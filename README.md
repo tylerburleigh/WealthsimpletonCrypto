@@ -1,12 +1,7 @@
-# Wealthsimpleton
+# WealthsimpletonCrypto
 
-A Python script that scrapes your Wealthsimple activity history and saves the data in a JSON file.
-
-The data scraped includes:
-- Transaction description
-- Transaction type
-- Transaction amount
-- Transaction date
+A Python script that scrapes your Wealthsimple crypto activity history and saves the data in a JSON file,
+and then converts the JSON file to a CSV that can be imported into the Koinly coin tracker / portfolio app.
 
 ## Usage
 
@@ -14,9 +9,28 @@ The data scraped includes:
 2. Ensure you have Chromium or Google Chrome installed.
 3. Ensure you have Chrome Webdriver installed and that it is compatible with the version of Chromium/Chrome you have.
    - On Linux, you can run `installChromeDriver.sh` to automatically install/update ChromeDriver in `/usr/local/bin`,
-4. Optionally, create a [`.env`](https://www.dotenv.org/docs/security/env.html) file with your Wealthsimple credentials defined as `WS_EMAIL` and `WS_PASSWORD` (or ensure those environment variables are present in some other way).
-   - If you skip this, you will need to login manually when the script starts.
-   - Note that even with these variables defined, you may still need to manually perform some login steps like 2FA or CAPTCHA.
-5. Run the script: `python main.py`
-   - You can use the `--after` argument to only include orders after a certain date/time (format is `%Y-%m-%d %H:%M`).
-   - The output is printed to the terminal; if you would like to also save it to a file, use the `--file` argument with a valid file path.
+4. Run the script: `python main.py --file ws_dump.json --account_id YOUR_CRYPTO_ACCOUNT_ID`
+   Replace YOUR_CRYPTO_ACCOUNT_ID with your Crypto account ID. You can find this in the URL
+   when you visit wealthsimple.com and go into your Crypto account. It looks something like this:
+   `non-registered-crypto-lmzx7t93`
+5. Once the browser launches from the script, log into WealthSimple
+6. After logging in, wait and let the `main.py` script do its thing
+   Here's what `main.py` will do:
+      - First, the browser will navigate to the activity page
+      - Then it will click "Load more" in a loop until all transactions are loaded
+      - Then it will scroll to the top
+      - Then it will expand each transaction, read the details, save to memory
+      - Once all transactions have been read, it will save the details to disk
+7. Once the script finishes, it will write a file to disk called `ws_dump.json`
+8. Run `python ws_to_koinly.py` to convert that JSON file  into a series of CSVs that can be imported into Koinly (e.g., `koinly_btc.pcsv`, `koinly_eth.csv`)
+
+The Koinly CSVs are saved in a format like the "trade template" found here:
+https://support.koinly.io/en/articles/9489976-how-to-create-a-custom-csv-file-with-your-data
+
+For example...
+
+```
+Koinly Date,Pair,Side,Amount,Total,Fee Amount,Fee Currency,Order ID,Trade ID
+2018-01-01 14:25 UTC,BTC-USD,Buy,1,1000,5,USD,,
+2018-01-01 14:45 UTC,BTC-USD,Sell,1,900,3,USD,,
+```

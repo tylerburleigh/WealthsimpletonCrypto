@@ -3,3 +3,4 @@ selenium-stealth
 python-dotenv
 fuzzywuzzy
 python-Levenshtein
+webdriver-manager

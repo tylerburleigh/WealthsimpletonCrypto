@@ -1,7 +1,6 @@
 # WealthsimpletonCrypto
 
-A Python script that scrapes your Wealthsimple crypto activity history and saves the data in a JSON file,
-and then converts the JSON file to a CSV that can be imported into the Koinly coin tracker / portfolio app.
+A Python script that scrapes your Wealthsimple crypto activity history and saves the data in a JSON file, and then converts the JSON file to CSVs that can be imported into custom wallets in Koinly for portfolio tracking / tax reporting purposes.
 
 ## Usage
 
